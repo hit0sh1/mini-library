@@ -18,26 +18,6 @@ const Header = () => {
           <Library size={24} />
           <span className="text-lg">みんなの本棚</span>
         </Link>
-        <nav className="flex items-center gap-4">
-          <Link
-            href="/shelf"
-            className={`p-2 rounded-full ${pathname === "/shelf" ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400" : "text-gray-600 dark:text-gray-400"}`}
-          >
-            <Library size={20} />
-          </Link>
-          <Link
-            href="/return"
-            className={`p-2 rounded-full ${pathname === "/return" ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400" : "text-gray-600 dark:text-gray-400"}`}
-          >
-            <ScanLine size={20} />
-          </Link>
-          <Link
-            href="/admin"
-            className={`p-2 rounded-full ${isAdmin ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400" : "text-gray-600 dark:text-gray-400"}`}
-          >
-            <User size={20} />
-          </Link>
-        </nav>
       </div>
     </header>
   );

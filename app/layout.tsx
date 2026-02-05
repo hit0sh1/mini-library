@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
+import BottomNav from "@/components/BottomNav";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,9 +26,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-screen pb-20`}>
+      <body className={`${inter.className} min-h-screen pb-24`}>
         <Header />
         <main className="max-w-md mx-auto px-4 py-6">{children}</main>
+        <BottomNav />
       </body>
     </html>
   );
