@@ -12,13 +12,21 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Book, Review, Loan } from "@/types";
-import { BadgeCheck, Ban, Star, User, CalendarDays } from "lucide-react";
+import {
+  BadgeCheck,
+  Ban,
+  Star,
+  User,
+  CalendarDays,
+  ChevronLeft,
+} from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 export default function BookDetailPage() {
   const { id } = useParams() as { id: string };
+  const router = useRouter();
   const [book, setBook] = useState<Book | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loan, setLoan] = useState<Loan | null>(null);
@@ -69,6 +77,16 @@ export default function BookDetailPage() {
 
   return (
     <div className="space-y-6">
+      <button
+        onClick={() => router.back()}
+        className="flex items-center gap-1 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group"
+      >
+        <ChevronLeft
+          size={20}
+          className="group-hover:-translate-x-0.5 transition-transform"
+        />
+        本棚に戻る
+      </button>
       <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col md:flex-row gap-6">
         <div className="relative w-full md:w-32 h-48 flex-shrink-0 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
           {book.thumbnail && (
