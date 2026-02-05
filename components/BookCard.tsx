@@ -20,7 +20,9 @@ const BookCard: React.FC<BookCardProps> = ({ book, onClick }) => {
             src={book.thumbnail}
             alt={book.title}
             fill
-            className="object-contain p-2"
+            sizes="(max-width: 448px) 160px, 120px"
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            priority={book.status === "available"}
           />
         ) : (
           <div className="flex items-center justify-center h-full text-gray-400">
