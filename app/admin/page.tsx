@@ -26,6 +26,7 @@ export default function AdminPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [password, setPassword] = useState("");
+  const [authError, setAuthError] = useState("");
   const router = useRouter();
 
   const fetchBooks = useCallback(async () => {
@@ -112,12 +113,13 @@ export default function AdminPage() {
       });
       if (res.ok) {
         setIsAuthorized(true);
+        setAuthError("");
       } else {
-        alert("パスワードが正しくありません。");
+        setAuthError("パスワードが正しくありません。");
       }
     } catch (error) {
       console.error("Login error:", error);
-      alert("通信エラーが発生しました。");
+      setAuthError("通信エラーが発生しました。");
     } finally {
       setLoading(false);
     }
@@ -135,10 +137,18 @@ export default function AdminPage() {
             placeholder="パスワードを入力"
             className="w-full border dark:border-gray-700 bg-white dark:bg-gray-800 p-3 rounded-lg text-sm text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-indigo-500"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setAuthError("");
+            }}
             required
             autoFocus
           />
+          {authError && (
+            <p className="text-red-500 text-sm font-medium animate-in fade-in slide-in-from-top-1">
+              {authError}
+            </p>
+          )}
           <button
             type="submit"
             disabled={loading}
@@ -259,6 +269,7 @@ export default function AdminPage() {
                       src={book.thumbnail}
                       alt={book.title}
                       fill
+                      sizes="40px"
                       className="object-cover"
                     />
                   </div>
