@@ -20,7 +20,7 @@ function LoanFormContent() {
   const bookTitle = searchParams.get("title");
 
   const [name, setName] = useState("");
-  const [days, setDays] = useState(7);
+  const [days] = useState(14); // Fixed to 2 weeks
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -120,30 +120,22 @@ function LoanFormContent() {
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
               貸出期間
             </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setDays(7)}
-                className={`p-3 rounded-lg border-2 flex flex-col items-center justify-center gap-1 transition-colors ${days === 7 ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400"}`}
-              >
-                <span className="font-bold">1週間</span>
-                <span className="text-xs">おすすめ</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setDays(14)}
-                className={`p-3 rounded-lg border-2 flex flex-col items-center justify-center gap-1 transition-colors ${days === 14 ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400"}`}
-              >
-                <span className="font-bold">2週間</span>
-                <span className="text-xs">最大</span>
-              </button>
+            <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-gray-900 dark:text-gray-100 text-lg">
+                  2週間
+                </span>
+                <span className="text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full">
+                  最大期間
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 flex items-center gap-1">
+                <Calendar size={12} /> 返却予定日:{" "}
+                {mounted
+                  ? new Date(Date.now() + days * 86400000).toLocaleDateString()
+                  : "--/--/--"}
+              </p>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 flex items-center gap-1">
-              <Calendar size={12} /> 返却予定日:{" "}
-              {mounted
-                ? new Date(Date.now() + days * 86400000).toLocaleDateString()
-                : "--/--/--"}
-            </p>
           </div>
 
           <button

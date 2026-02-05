@@ -12,50 +12,72 @@ const Scanner: React.FC<ScannerProps> = ({ onDetected }) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!scannerRef.current) return;
+    let isActive = true;
 
-    Quagga.init(
-      {
-        inputStream: {
-          type: "LiveStream",
-          constraints: {
-            width: 640,
-            height: 480,
-            facingMode: "environment", // Use rear camera
+    const initScanner = async () => {
+      if (!scannerRef.current) return;
+
+      // Give the DOM a moment to stabilize
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      if (!isActive) return;
+
+      try {
+        await Quagga.init(
+          {
+            inputStream: {
+              type: "LiveStream",
+              constraints: {
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+                facingMode: "environment",
+              },
+              target: scannerRef.current,
+              willReadFrequently: true,
+            },
+            locator: {
+              patchSize: "medium",
+              halfSample: true,
+            },
+            numOfWorkers: navigator.hardwareConcurrency || 2,
+            decoder: {
+              readers: ["ean_reader"],
+            },
+            locate: true,
           },
-          target: scannerRef.current,
-        },
-        locator: {
-          patchSize: "medium",
-          halfSample: true,
-        },
-        numOfWorkers: 2,
-        decoder: {
-          readers: ["ean_reader"], // ISBN is EAN-13
-        },
-        locate: true,
-      },
-      (err) => {
-        if (err) {
-          console.error("Error starting Quagga:", err);
-          setError(
-            "カメラへのアクセスに失敗しました。権限を確認してください。",
-          );
-          return;
-        }
-        Quagga.start();
-      },
-    );
+          (err) => {
+            if (err) {
+              if (isActive) {
+                console.error("Quagga init error:", err);
+                setError(
+                  "カメラの初期化に失敗しました。以前のセッションが残っている可能性があります。",
+                );
+              }
+              return;
+            }
+            if (isActive) Quagga.start();
+          },
+        );
 
-    Quagga.onDetected((result) => {
-      if (result && result.codeResult && result.codeResult.code) {
-        onDetected(result.codeResult.code);
-        Quagga.stop(); // Stop after detection to prevent multiple reads
+        Quagga.onDetected((result) => {
+          if (isActive && result?.codeResult?.code) {
+            const code = result.codeResult.code;
+            console.log("[Scanner] Barcode detected:", code);
+            onDetected(code);
+            Quagga.stop();
+          }
+        });
+      } catch (err) {
+        console.error("Scanner setup failed:", err);
+        if (isActive) setError("スキャナーの起動中にエラーが発生しました。");
       }
-    });
+    };
+
+    initScanner();
 
     return () => {
+      isActive = false;
       Quagga.stop();
+      Quagga.offDetected();
     };
   }, [onDetected]);
 

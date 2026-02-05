@@ -80,22 +80,26 @@ export default function BookDetailPage() {
             />
           )}
         </div>
-        <div className="flex-1 space-y-2">
-          <div className="flex justify-between items-start">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+        <div className="flex-1 space-y-3">
+          <div className="flex flex-col gap-2">
+            <div>
+              {book.status === "available" ? (
+                <span className="inline-flex bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 text-[10px] sm:text-xs px-2 py-0.5 rounded-full items-center gap-1 font-bold whitespace-nowrap uppercase tracking-wider">
+                  <BadgeCheck size={12} /> 貸出可能
+                </span>
+              ) : (
+                <span className="inline-flex bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 text-[10px] sm:text-xs px-2 py-0.5 rounded-full items-center gap-1 font-bold whitespace-nowrap uppercase tracking-wider">
+                  <Ban size={12} /> 貸出中
+                </span>
+              )}
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
               {book.title}
             </h1>
-            {book.status === "available" ? (
-              <span className="bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 text-xs px-2 py-1 rounded-full flex items-center gap-1 font-medium whitespace-nowrap">
-                <BadgeCheck size={12} /> 貸出可能
-              </span>
-            ) : (
-              <span className="bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 text-xs px-2 py-1 rounded-full flex items-center gap-1 font-medium whitespace-nowrap">
-                <Ban size={12} /> 貸出中
-              </span>
-            )}
           </div>
-          <p className="text-gray-600 dark:text-gray-400">{book.author}</p>
+          <p className="text-gray-600 dark:text-gray-400 font-medium">
+            {book.author}
+          </p>
           {book.donor_comment && (
             <div className="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg text-sm text-indigo-800 dark:text-indigo-300 mt-2">
               <span className="font-bold block text-xs uppercase tracking-wider mb-1">

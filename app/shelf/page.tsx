@@ -21,24 +21,46 @@ export default function ShelfPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
   const router = useRouter();
 
   const handleDetected = useCallback(
     async (code: string) => {
-      setScanning(false);
+      console.log("[ShelfPage] handleDetected called with:", code);
+      if (!code || searching || scanError) {
+        console.log(
+          "[ShelfPage] skipping: code is empty, searching, or error exists",
+          { code, searching, scanError },
+        );
+        return;
+      }
+
+      setSearching(true);
+      setScanError(null);
       try {
-        const bookDoc = await getDoc(doc(db, "books", code));
+        const cleanedCode = code.trim();
+        console.log("[ShelfPage] Fetching book with ID:", cleanedCode);
+        const bookDoc = await getDoc(doc(db, "books", cleanedCode));
+
         if (bookDoc.exists()) {
-          router.push(`/books/${code}`);
+          console.log("[ShelfPage] Book found! Redirecting...");
+          router.push(`/books/${cleanedCode}`);
+          // Next.js handles navigation. We don't close manually here to avoid flicker.
         } else {
-          alert("その本は登録されていません。");
+          console.warn("[ShelfPage] Book NOT found for code:", cleanedCode);
+          setSearching(false);
+          setScanError(`「${cleanedCode}」は本棚に登録されていません。`);
         }
       } catch (error) {
-        console.error("Error checking book:", error);
-        alert("エラーが発生しました。");
+        console.error("[ShelfPage] Error checking book:", error);
+        setSearching(false);
+        setScanError(
+          "書籍の確認中にエラーが発生しました。通信状況を確認してください。",
+        );
       }
     },
-    [router],
+    [router, searching, scanError],
   );
 
   useEffect(() => {
@@ -72,38 +94,79 @@ export default function ShelfPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
           みんなの本棚
         </h1>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setScanning(true)}
-            className="p-2 bg-indigo-600 text-white rounded-full shadow-md hover:bg-indigo-700 transition-colors"
-            title="バーコードで検索"
-          >
-            <ScanLine size={20} />
-          </button>
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            {books.length} 冊
-          </span>
+        <span className="text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-full">
+          {books.length} 冊
+        </span>
+      </div>
+
+      <div className="bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-950/20 dark:to-gray-900 p-5 rounded-2xl shadow-sm border border-indigo-100/50 dark:border-indigo-900/30 space-y-4">
+        <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300">
+          <div className="p-1.5 bg-indigo-100 dark:bg-indigo-900/40 rounded-lg">
+            <ScanLine size={18} />
+          </div>
+          <h2 className="font-bold text-sm">本をスキャンして詳細を表示</h2>
         </div>
+        <button
+          onClick={() => {
+            setScanError(null);
+            setScanning(true);
+          }}
+          className="w-full py-3.5 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+        >
+          <ScanLine size={20} />
+          バーコードをスキャン
+        </button>
       </div>
 
       {scanning && (
         <div className="fixed inset-0 z-[60] bg-black flex flex-col items-center justify-center">
           <button
-            onClick={() => setScanning(false)}
+            onClick={() => {
+              setScanning(false);
+              setScanError(null);
+            }}
             className="absolute top-6 right-6 p-3 bg-white/20 hover:bg-white/30 text-white rounded-full backdrop-blur-md transition-colors"
           >
             <X size={24} />
           </button>
-          <div className="w-full max-w-md px-4">
+          <div className="w-full max-w-md px-4 flex flex-col items-center">
             <h2 className="text-white text-lg font-bold mb-4 text-center">
-              バーコードを読み取ってください
+              {searching
+                ? "詳細を確認中..."
+                : scanError
+                  ? scanError.includes("登録されていません")
+                    ? "該当の本は登録されていません"
+                    : "エラーが発生しました"
+                  : "バーコードを読み取ってください"}
             </h2>
-            <div className="overflow-hidden rounded-2xl border-2 border-white/50 shadow-2xl">
-              <Scanner onDetected={handleDetected} />
+            <div className="relative w-full overflow-hidden rounded-2xl border-2 border-white/50 shadow-2xl">
+              {!scanError && <Scanner onDetected={handleDetected} />}
+              {(searching || scanError) && (
+                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-10 backdrop-blur-sm p-6 text-center">
+                  {searching ? (
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+                  ) : (
+                    <div className="space-y-4">
+                      <p className="text-white font-medium">{scanError}</p>
+                      <button
+                        onClick={() => setScanError(null)}
+                        className="px-6 py-2 bg-white text-black rounded-full font-bold text-sm shadow-lg hover:bg-gray-100 transition-colors"
+                      >
+                        再試行
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+            {searching && (
+              <div className="mt-4 px-4 py-2 bg-indigo-600/80 backdrop-blur-md rounded-lg border border-white/20 animate-pulse text-center">
+                <p className="text-white text-sm font-bold">検索中...</p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -119,7 +182,7 @@ export default function ShelfPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-3">
           {books.map((book) => (
             <Link key={book.id} href={`/books/${book.id}`}>
               <BookCard book={book} />

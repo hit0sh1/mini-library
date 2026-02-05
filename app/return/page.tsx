@@ -115,15 +115,19 @@ export default function ReturnPage() {
 
   if (loans.length === 0) {
     return (
-      <div className="p-10 text-center">
-        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
-          現在、借りている本はありません
+      <div className="p-6 md:p-10 text-center flex flex-col items-center justify-center min-h-[50vh]">
+        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 break-keep">
+          現在、借りている本は
+          <br className="md:hidden" />
+          ありません
         </h2>
-        <p className="text-gray-500 dark:text-gray-400 mt-2">
-          本棚から新しい本を探してみませんか？
+        <p className="text-gray-500 dark:text-gray-400 mt-2 break-keep">
+          本棚から新しい本を
+          <br className="md:hidden" />
+          探してみませんか？
         </p>
         {userName && (
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-4">
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-6 bg-gray-50 dark:bg-gray-800/50 px-3 py-1 rounded-full border border-gray-100 dark:border-gray-800">
             ログイン名: {userName}
           </p>
         )}
@@ -163,17 +167,13 @@ export default function ReturnPage() {
           onSubmit={handleReturn}
           className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 space-y-5"
         >
-          <div className="flex justify-between items-center">
-            <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100">
+          <div className="pb-2 border-b border-gray-100 dark:border-gray-800">
+            <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100 leading-tight">
               {loans.find((l) => l.id === selectedLoanId)?.book.title}
             </h3>
-            <button
-              type="button"
-              onClick={() => setSelectedLoanId(null)}
-              className="text-sm text-indigo-600 dark:text-indigo-400 underline"
-            >
-              戻る
-            </button>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              この本の感想を入力して返却を完了してください
+            </p>
           </div>
 
           <div>
