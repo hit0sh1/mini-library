@@ -9,6 +9,8 @@ import {
   where,
   getDocs,
   orderBy,
+  Timestamp,
+  addDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Book, Review, Loan } from "@/types";
@@ -31,6 +33,19 @@ export default function BookDetailPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loan, setLoan] = useState<Loan | null>(null);
   const [loading, setLoading] = useState(true);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [reviewerName, setReviewerName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const savedName = localStorage.getItem("mini-library-username");
+    if (savedName) {
+      setReviewerName(savedName);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchBook = async () => {
@@ -71,6 +86,51 @@ export default function BookDetailPage() {
     };
     fetchBook();
   }, [id]);
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewerName.trim() || !comment.trim()) {
+      alert("お名前と感想を入力してください。");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // Save name to localStorage
+      localStorage.setItem("mini-library-username", reviewerName);
+
+      // Create review
+      await addDoc(collection(db, "reviews"), {
+        book_id: id,
+        reviewer_name: reviewerName,
+        rating,
+        comment,
+        created_at: Timestamp.now(),
+      });
+
+      // Refresh reviews
+      const q = query(
+        collection(db, "reviews"),
+        where("book_id", "==", id),
+        orderBy("created_at", "desc"),
+      );
+      const reviewSnap = await getDocs(q);
+      const reviewsData = reviewSnap.docs.map(
+        (doc) => ({ id: doc.id, ...doc.data() }) as Review,
+      );
+      setReviews(reviewsData);
+
+      // Reset form
+      setComment("");
+      setRating(5);
+      alert("感想を投稿しました！ありがとうございます。");
+    } catch (error) {
+      console.error("Error submitting review:", error);
+      alert("感想の投稿に失敗しました。");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (loading) return <div className="text-center py-10">Loading...</div>;
   if (!book) return <div className="text-center py-10">Book not found.</div>;
@@ -200,6 +260,79 @@ export default function BookDetailPage() {
               </div>
             ))}
           </div>
+        )}
+
+        {mounted && (
+          <form onSubmit={handleReviewSubmit} className="mt-6 space-y-4">
+            <h3 className="font-bold text-md text-gray-800 dark:text-gray-100">
+              感想を書く
+            </h3>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                評価
+              </label>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star)}
+                    className="transition-transform hover:scale-110 active:scale-95"
+                  >
+                    <Star
+                      size={28}
+                      className={
+                        star <= rating
+                          ? "text-yellow-500"
+                          : "text-gray-300 dark:text-gray-600"
+                      }
+                      fill={star <= rating ? "currentColor" : "none"}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                お名前（部署名＋フルネーム）
+              </label>
+              <input
+                type="text"
+                required
+                value={reviewerName}
+                onChange={(e) => setReviewerName(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                placeholder="例：開発部 山田太郎"
+              />
+              <p className="mt-2 text-[10px] text-gray-400 dark:text-gray-500">
+                ※誰が書いたか分かるよう、部署名と氏名を併記してください。
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                感想
+              </label>
+              <textarea
+                required
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition resize-none"
+                placeholder="この本を読んだ感想を書いてください..."
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting || !reviewerName.trim() || !comment.trim()}
+              className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submitting ? "投稿中..." : "感想を投稿"}
+            </button>
+          </form>
         )}
       </div>
     </div>

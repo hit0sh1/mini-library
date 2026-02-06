@@ -27,36 +27,34 @@ export default function ShelfPage() {
 
   const handleDetected = useCallback(
     async (code: string) => {
-      console.log("[ShelfPage] handleDetected called with:", code);
-      if (!code || searching || scanError) {
-        console.log(
-          "[ShelfPage] skipping: code is empty, searching, or error exists",
-          { code, searching, scanError },
-        );
-        return;
-      }
+      if (searching || scanError) return;
 
-      setSearching(true);
-      setScanError(null);
-      try {
-        const cleanedCode = code.trim();
-        console.log("[ShelfPage] Fetching book with ID:", cleanedCode);
-        const bookDoc = await getDoc(doc(db, "books", cleanedCode));
+      const cleanedCode = code.trim();
+      // Only process ISBNs
+      if (cleanedCode.startsWith("978") || cleanedCode.startsWith("979")) {
+        setSearching(true);
+        setScanError(null);
+        try {
+          console.log("[ShelfPage] Checking book with ID:", cleanedCode);
+          const bookDoc = await getDoc(doc(db, "books", cleanedCode));
 
-        if (bookDoc.exists()) {
-          console.log("[ShelfPage] Book found! Redirecting...");
-          router.push(`/books/${cleanedCode}`);
-          // Next.js handles navigation. We don't close manually here to avoid flicker.
-        } else {
-          console.warn("[ShelfPage] Book NOT found for code:", cleanedCode);
+          if (bookDoc.exists()) {
+            console.log("[ShelfPage] Book found! Redirecting...");
+            router.push(`/books/${cleanedCode}`);
+          } else {
+            console.warn("[ShelfPage] Book NOT found for code:", cleanedCode);
+            setSearching(false);
+            setScanError(`この本はまだ本棚に登録されていません。`);
+          }
+        } catch (error) {
+          console.error("[ShelfPage] Error checking book:", error);
           setSearching(false);
-          setScanError(`「${cleanedCode}」は本棚に登録されていません。`);
+          setScanError("通信エラーが発生しました。");
         }
-      } catch (error) {
-        console.error("[ShelfPage] Error checking book:", error);
-        setSearching(false);
+      } else {
+        // Hint for wrong barcode
         setScanError(
-          "書籍の確認中にエラーが発生しました。通信状況を確認してください。",
+          "それは本体価格などのコードです。上段の「978...」から始まるバーコードをスキャンしてください。",
         );
       }
     },
@@ -122,51 +120,72 @@ export default function ShelfPage() {
       </div>
 
       {scanning && (
-        <div className="fixed inset-0 z-[60] bg-black flex flex-col items-center justify-center">
+        <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center overscroll-none touch-none">
           <button
             onClick={() => {
               setScanning(false);
               setScanError(null);
             }}
-            className="absolute top-6 right-6 p-3 bg-white/20 hover:bg-white/30 text-white rounded-full backdrop-blur-md transition-colors"
+            className="absolute top-8 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-xl transition-all active:scale-90 z-[110]"
           >
-            <X size={24} />
+            <X size={28} />
           </button>
+
           <div className="w-full max-w-md px-4 flex flex-col items-center">
-            <h2 className="text-white text-lg font-bold mb-4 text-center">
-              {searching
-                ? "詳細を確認中..."
-                : scanError
-                  ? scanError.includes("登録されていません")
-                    ? "該当の本は登録されていません"
-                    : "エラーが発生しました"
-                  : "バーコードを読み取ってください"}
-            </h2>
-            <div className="relative w-full overflow-hidden rounded-2xl border-2 border-white/50 shadow-2xl">
+            <div className="mb-8 text-center animate-in fade-in slide-in-from-top-4 duration-500">
+              <h2 className="text-white text-xl font-bold mb-2">
+                {searching
+                  ? "Google Booksで検索中..."
+                  : scanError?.includes("登録されていません")
+                    ? "未登録の本です"
+                    : scanError
+                      ? "エラーが発生しました"
+                      : "バーコード(ISBN)を読み取る"}
+              </h2>
+              <p className="text-white/50 text-xs">
+                枠内の赤い線をバーコードに合わせてください
+              </p>
+            </div>
+
+            <div className="relative w-full aspect-[3/4] overflow-hidden rounded-3xl border border-white/20 shadow-2xl bg-gray-900">
               {!scanError && <Scanner onDetected={handleDetected} />}
               {(searching || scanError) && (
-                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-10 backdrop-blur-sm p-6 text-center">
+                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-10 backdrop-blur-md p-8 text-center">
                   {searching ? (
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-500/30 border-t-indigo-500"></div>
+                      <p className="text-white/80 font-bold animate-pulse">
+                        情報を照合中
+                      </p>
+                    </div>
                   ) : (
-                    <div className="space-y-4">
-                      <p className="text-white font-medium">{scanError}</p>
+                    <div className="space-y-6">
+                      <div className="p-4 bg-red-500/20 rounded-full w-16 h-16 mx-auto flex items-center justify-center text-red-400">
+                        <X size={32} />
+                      </div>
+                      <p className="text-white font-medium text-sm leading-relaxed">
+                        {scanError}
+                      </p>
                       <button
                         onClick={() => setScanError(null)}
-                        className="px-6 py-2 bg-white text-black rounded-full font-bold text-sm shadow-lg hover:bg-gray-100 transition-colors"
+                        className="w-full py-4 bg-white text-black rounded-2xl font-bold shadow-xl hover:bg-gray-100 transition-all active:scale-[0.98]"
                       >
-                        再試行
+                        もう一度スキャンする
                       </button>
                     </div>
                   )}
                 </div>
               )}
             </div>
-            {searching && (
-              <div className="mt-4 px-4 py-2 bg-indigo-600/80 backdrop-blur-md rounded-lg border border-white/20 animate-pulse text-center">
-                <p className="text-white text-sm font-bold">検索中...</p>
-              </div>
-            )}
+
+            <p className="text-white/40 text-[10px] mt-10 text-center max-w-[280px] leading-relaxed">
+              日本の書籍は2つバーコードが並んでいます。
+              <br />
+              <span className="text-indigo-400 font-bold">
+                上段（978から始まるコード）
+              </span>
+              のみを枠内に入れてください。
+            </p>
           </div>
         </div>
       )}

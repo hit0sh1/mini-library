@@ -207,8 +207,8 @@ export default function ReturnPage() {
 
           <button
             type="submit"
-            disabled={submitting}
-            className="w-full py-3 bg-indigo-600 text-white rounded-lg font-bold shadow hover:bg-indigo-700 disabled:opacity-50"
+            disabled={submitting || !comment.trim()}
+            className="w-full py-3 bg-indigo-600 text-white rounded-lg font-bold shadow hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             {submitting ? "返却中..." : "返却して感想を投稿"}
           </button>

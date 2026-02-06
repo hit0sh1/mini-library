@@ -104,7 +104,7 @@ function LoanFormContent() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-              お名前
+              お名前（部署名＋フルネーム）
             </label>
             <input
               type="text"
@@ -112,8 +112,11 @@ function LoanFormContent() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full border dark:border-gray-700 bg-white dark:bg-gray-800 p-3 rounded-lg text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 outline-none"
-              placeholder="あなたの名前を入力"
+              placeholder="例：開発部 山田太郎"
             />
+            <p className="mt-2 text-[10px] text-gray-400 dark:text-gray-500">
+              ※誰が借りているか分かるよう、部署名と氏名を併記してください。
+            </p>
           </div>
 
           <div>
@@ -140,8 +143,8 @@ function LoanFormContent() {
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg shadow-lg hover:bg-indigo-700 transition active:scale-95 disabled:opacity-70"
+            disabled={loading || !name.trim()}
+            className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg shadow-lg hover:bg-indigo-700 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "処理中..." : "確定して借りる"}
           </button>

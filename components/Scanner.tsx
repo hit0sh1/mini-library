@@ -33,6 +33,13 @@ const Scanner: React.FC<ScannerProps> = ({ onDetected }) => {
               },
               target: scannerRef.current,
               willReadFrequently: true,
+              // Only scan the horizontal middle section (vertical center)
+              area: {
+                top: "30%",
+                right: "10%",
+                left: "10%",
+                bottom: "30%",
+              },
             },
             locator: {
               patchSize: "medium",
@@ -41,6 +48,7 @@ const Scanner: React.FC<ScannerProps> = ({ onDetected }) => {
             numOfWorkers: navigator.hardwareConcurrency || 2,
             decoder: {
               readers: ["ean_reader"],
+              multiple: false, // Don't try to find multiple barcodes
             },
             locate: true,
           },
@@ -58,12 +66,31 @@ const Scanner: React.FC<ScannerProps> = ({ onDetected }) => {
           },
         );
 
+        let lastResult: string | null = null;
+        let count = 0;
+
         Quagga.onDetected((result) => {
           if (isActive && result?.codeResult?.code) {
             const code = result.codeResult.code;
-            console.log("[Scanner] Barcode detected:", code);
-            onDetected(code);
-            Quagga.stop();
+
+            // Only care about 13 digit EANs (ISBNs)
+            if (code.length !== 13) return;
+
+            // Consistency check: Need the same result multiple times to confirm
+            if (code === lastResult) {
+              count++;
+            } else {
+              lastResult = code;
+              count = 0;
+            }
+
+            if (count >= 5) {
+              console.log("[Scanner] Confirmed barcode:", code);
+              onDetected(code);
+              // reset for next scan if component stays mounted
+              lastResult = null;
+              count = 0;
+            }
           }
         });
       } catch (err) {
@@ -82,7 +109,7 @@ const Scanner: React.FC<ScannerProps> = ({ onDetected }) => {
   }, [onDetected]);
 
   return (
-    <div className="relative w-full h-64 bg-black rounded-lg overflow-hidden">
+    <div className="relative w-full h-80 bg-black rounded-lg overflow-hidden">
       {error ? (
         <div className="flex items-center justify-center h-full text-white p-4 text-center">
           {error}
@@ -93,8 +120,14 @@ const Scanner: React.FC<ScannerProps> = ({ onDetected }) => {
           className="w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover"
         />
       )}
-      <div className="absolute inset-0 border-2 border-white/50 pointer-events-none">
-        <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-red-500 opacity-50" />
+      {/* Visual Guide Box */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-[80%] h-[40%] border-2 border-indigo-500 rounded-lg shadow-[0_0_0_1000px_rgba(0,0,0,0.5)]">
+          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-red-500 opacity-70" />
+        </div>
+        <p className="absolute bottom-6 text-white text-[10px] font-bold bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm">
+          この枠内にバーコードを合わせてください
+        </p>
       </div>
     </div>
   );
