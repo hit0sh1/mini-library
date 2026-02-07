@@ -58,7 +58,6 @@ export default function AdminPage() {
   const [manualBook, setManualBook] = useState({
     title: "",
     author: "",
-    description: "",
   });
   const [uploadingImage, setUploadingImage] = useState(false);
   const [manualThumbnail, setManualThumbnail] = useState("");
@@ -217,14 +216,13 @@ export default function AdminPage() {
         id: bookId,
         title: manualBook.title,
         author: manualBook.author || "不明な著者",
-        description: manualBook.description,
         thumbnail: manualThumbnail,
         status: "available",
       };
 
       await setDoc(doc(db, "books", bookId), newBook);
       alert("本を登録しました！");
-      setManualBook({ title: "", author: "", description: "" });
+      setManualBook({ title: "", author: "" });
       setManualThumbnail("");
       setIsbn("");
       setIsManualMode(false);
@@ -536,23 +534,6 @@ export default function AdminPage() {
                   value={manualBook.author}
                   onChange={(e) =>
                     setManualBook({ ...manualBook, author: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-400 dark:text-gray-500 mb-1 uppercase tracking-wider">
-                  説明
-                </label>
-                <textarea
-                  placeholder="本の内容や備考"
-                  rows={3}
-                  className="w-full border dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 rounded-lg text-sm text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-                  value={manualBook.description}
-                  onChange={(e) =>
-                    setManualBook({
-                      ...manualBook,
-                      description: e.target.value,
-                    })
                   }
                 />
               </div>
