@@ -5,6 +5,7 @@ export interface Book {
   title: string;
   author: string;
   thumbnail: string;
+  description?: string;
   donor_comment?: string;
   status: 'available' | 'borrowed';
   current_loan_id?: string;

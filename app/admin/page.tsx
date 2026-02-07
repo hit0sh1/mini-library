@@ -26,7 +26,12 @@ import {
   PlusCircle,
   Star,
   ChevronDown,
+  Upload,
+  Book as BookIcon,
 } from "lucide-react";
+import { storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { v4 as uuidv4 } from "uuid";
 
 export default function AdminPage() {
   const [scanning, setScanning] = useState(false);
@@ -49,6 +54,14 @@ export default function AdminPage() {
     borrowed: true,
     reviews: true,
   });
+  const [isManualMode, setIsManualMode] = useState(false);
+  const [manualBook, setManualBook] = useState({
+    title: "",
+    author: "",
+    description: "",
+  });
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [manualThumbnail, setManualThumbnail] = useState("");
   const router = useRouter();
 
   const fetchBooks = useCallback(async () => {
@@ -172,6 +185,57 @@ export default function AdminPage() {
     },
     [searching, loading],
   );
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingImage(true);
+      const storageRef = ref(storage, `covers/${Date.now()}_${file.name}`);
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      setManualThumbnail(downloadURL);
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      alert("画像のアップロードに失敗しました。");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleManualRegister = async () => {
+    if (!manualBook.title) {
+      alert("タイトルを入力してください。");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const bookId = isbn || `manual_${uuidv4()}`;
+      const newBook: Book = {
+        id: bookId,
+        title: manualBook.title,
+        author: manualBook.author || "不明な著者",
+        description: manualBook.description,
+        thumbnail: manualThumbnail,
+        status: "available",
+      };
+
+      await setDoc(doc(db, "books", bookId), newBook);
+      alert("本を登録しました！");
+      setManualBook({ title: "", author: "", description: "" });
+      setManualThumbnail("");
+      setIsbn("");
+      setIsManualMode(false);
+      fetchBooks();
+    } catch (error) {
+      console.error("Error registering manual book:", error);
+      alert("登録に失敗しました。");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleRegister = async () => {
     if (!scannedBook || !scannedBook.id) return;
@@ -325,13 +389,13 @@ export default function AdminPage() {
         </button>
 
         {scanning && (
-          <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center overscroll-none touch-none">
+          <div className="fixed inset-0 z-100 bg-black flex flex-col items-center justify-center overscroll-none touch-none">
             <button
               onClick={() => {
                 setScanning(false);
                 setScanError(null);
               }}
-              className="absolute top-8 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-xl transition-all active:scale-90 z-[110]"
+              className="absolute top-8 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-xl transition-all active:scale-90 z-110"
             >
               <X size={28} />
             </button>
@@ -351,7 +415,7 @@ export default function AdminPage() {
                 </p>
               </div>
 
-              <div className="relative w-full aspect-[3/4] overflow-hidden rounded-3xl border border-white/20 shadow-2xl bg-gray-900">
+              <div className="relative w-full aspect-3/4 overflow-hidden rounded-3xl border border-white/20 shadow-2xl bg-gray-900">
                 {!scanError && <Scanner onDetected={handleDetected} />}
                 {(searching || scanError) && (
                   <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-10 backdrop-blur-md p-8 text-center">
@@ -433,6 +497,123 @@ export default function AdminPage() {
             </p>
           </div>
         )}
+
+        <div className="pt-2">
+          <button
+            onClick={() => setIsManualMode(!isManualMode)}
+            className="text-indigo-600 dark:text-indigo-400 text-sm font-bold flex items-center gap-1.5 hover:underline"
+          >
+            <PlusCircle size={16} />
+            {isManualMode ? "手入力を閉じる" : "ISBNがない本を手入力で登録する"}
+          </button>
+        </div>
+
+        {isManualMode && (
+          <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-gray-800 animate-in fade-in slide-in-from-top-2">
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-400 dark:text-gray-500 mb-1 uppercase tracking-wider">
+                  タイトル *
+                </label>
+                <input
+                  type="text"
+                  placeholder="本のタイトル"
+                  className="w-full border dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 rounded-lg text-sm text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={manualBook.title}
+                  onChange={(e) =>
+                    setManualBook({ ...manualBook, title: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 dark:text-gray-500 mb-1 uppercase tracking-wider">
+                  著者
+                </label>
+                <input
+                  type="text"
+                  placeholder="著者名"
+                  className="w-full border dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 rounded-lg text-sm text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={manualBook.author}
+                  onChange={(e) =>
+                    setManualBook({ ...manualBook, author: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 dark:text-gray-500 mb-1 uppercase tracking-wider">
+                  説明
+                </label>
+                <textarea
+                  placeholder="本の内容や備考"
+                  rows={3}
+                  className="w-full border dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 rounded-lg text-sm text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                  value={manualBook.description}
+                  onChange={(e) =>
+                    setManualBook({
+                      ...manualBook,
+                      description: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 dark:text-gray-500 mb-1 uppercase tracking-wider">
+                  カバー画像
+                </label>
+                <div className="flex items-center gap-4">
+                  {manualThumbnail ? (
+                    <div className="relative w-16 h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                      <Image
+                        src={manualThumbnail}
+                        alt="Preview"
+                        fill
+                        className="object-cover"
+                      />
+                      <button
+                        onClick={() => setManualThumbnail("")}
+                        className="absolute top-0 right-0 p-1 bg-black/50 text-white hover:bg-black/70 transition-colors"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="w-16 h-20 flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors">
+                      <Upload
+                        size={20}
+                        className="text-gray-400 dark:text-gray-500"
+                      />
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+                        Upload
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageUpload}
+                        disabled={uploadingImage}
+                      />
+                    </label>
+                  )}
+                  <div className="flex-1">
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-relaxed">
+                      {uploadingImage
+                        ? "アップロード中..."
+                        : "本を直接撮影するか、画像ファイルを選択してください。"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleManualRegister}
+              disabled={loading || uploadingImage || !manualBook.title}
+              className="w-full py-3 bg-gray-900 dark:bg-gray-800 text-white rounded-xl font-bold hover:bg-gray-800 dark:hover:bg-gray-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+            >
+              <BookIcon size={18} />
+              {loading ? "登録中..." : "この内容で手動登録する"}
+            </button>
+          </div>
+        )}
       </div>
 
       {scannedBook && (
@@ -490,7 +671,7 @@ export default function AdminPage() {
             className={`transition-transform ${expandedSections.books ? "" : "-rotate-90"}`}
           />
           <span>登録済みの本</span>
-          <span className="text-sm font-medium text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800/80 px-2 py-0.5 rounded-full min-w-[2.5rem] text-center">
+          <span className="text-sm font-medium text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-800/80 px-2 py-0.5 rounded-full min-w-10 text-center">
             {books.length}
           </span>
         </h2>
@@ -694,7 +875,7 @@ export default function AdminPage() {
                       )
                     }
                     disabled={loading}
-                    className="p-3 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all flex-shrink-0"
+                    className="p-3 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-all shrink-0"
                     title="削除"
                   >
                     <Trash2 size={18} />

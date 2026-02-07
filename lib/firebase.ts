@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -16,5 +17,6 @@ const db = initializeFirestore(app, {
     tabManager: persistentMultipleTabManager()
   })
 });
+const storage = getStorage(app);
 
-export { app, db };
+export { app, db, storage };

@@ -17,12 +17,26 @@ const Scanner: React.FC<ScannerProps> = ({ onDetected }) => {
     const initScanner = async () => {
       if (!scannerRef.current) return;
 
+      // Debugging logs to help identify the environment issue
+      console.log("[Scanner] Environment Check:", {
+        isSecureContext: window.isSecureContext,
+        hasMediaDevices: !!navigator.mediaDevices,
+        hasGetUserMedia: !!(
+          navigator.mediaDevices && navigator.mediaDevices.getUserMedia
+        ),
+        userAgent: navigator.userAgent,
+      });
+
       // Give the DOM a moment to stabilize
       await new Promise((resolve) => setTimeout(resolve, 300));
       if (!isActive) return;
 
       try {
-        await Quagga.init(
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("getUserMedia_undefined");
+        }
+
+        Quagga.init(
           {
             inputStream: {
               type: "LiveStream",
@@ -32,23 +46,15 @@ const Scanner: React.FC<ScannerProps> = ({ onDetected }) => {
                 facingMode: "environment",
               },
               target: scannerRef.current,
-              willReadFrequently: true,
-              // Only scan the horizontal middle section (vertical center)
-              area: {
-                top: "30%",
-                right: "10%",
-                left: "10%",
-                bottom: "30%",
-              },
             },
             locator: {
               patchSize: "medium",
               halfSample: true,
             },
-            numOfWorkers: navigator.hardwareConcurrency || 2,
+            numOfWorkers: Math.min(navigator.hardwareConcurrency || 2, 4),
             decoder: {
               readers: ["ean_reader"],
-              multiple: false, // Don't try to find multiple barcodes
+              multiple: false,
             },
             locate: true,
           },
@@ -56,13 +62,23 @@ const Scanner: React.FC<ScannerProps> = ({ onDetected }) => {
             if (err) {
               if (isActive) {
                 console.error("Quagga init error:", err);
-                setError(
-                  "カメラの初期化に失敗しました。以前のセッションが残っている可能性があります。",
-                );
+                if (
+                  err.name === "NotAllowedError" ||
+                  err.name === "PermissionDeniedError"
+                ) {
+                  setError(
+                    "カメラへのアクセスが拒否されました。設定を確認してください。",
+                  );
+                } else {
+                  setError("スキャナーの初期化に失敗しました。");
+                }
               }
               return;
             }
-            if (isActive) Quagga.start();
+            if (isActive) {
+              console.log("[Scanner] Quagga started");
+              Quagga.start();
+            }
           },
         );
 
@@ -72,11 +88,8 @@ const Scanner: React.FC<ScannerProps> = ({ onDetected }) => {
         Quagga.onDetected((result) => {
           if (isActive && result?.codeResult?.code) {
             const code = result.codeResult.code;
-
-            // Only care about 13 digit EANs (ISBNs)
             if (code.length !== 13) return;
 
-            // Consistency check: Need the same result multiple times to confirm
             if (code === lastResult) {
               count++;
             } else {
@@ -85,17 +98,23 @@ const Scanner: React.FC<ScannerProps> = ({ onDetected }) => {
             }
 
             if (count >= 5) {
-              console.log("[Scanner] Confirmed barcode:", code);
               onDetected(code);
-              // reset for next scan if component stays mounted
               lastResult = null;
               count = 0;
             }
           }
         });
-      } catch (err) {
+      } catch (err: any) {
         console.error("Scanner setup failed:", err);
-        if (isActive) setError("スキャナーの起動中にエラーが発生しました。");
+        if (isActive) {
+          if (err.message === "getUserMedia_undefined") {
+            setError(
+              "ブラウザがカメラに対応していないか、HTTPS接続ではありません。localhost以外でテストする場合はHTTPSが必要です。",
+            );
+          } else {
+            setError("スキャナーの起動中にエラーが発生しました。");
+          }
+        }
       }
     };
 

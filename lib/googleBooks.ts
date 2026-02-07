@@ -1,6 +1,8 @@
 export async function getBookByISBN(isbn: string) {
   try {
-    const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY;
+    const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}${apiKey ? `&key=${apiKey}` : ""}`;
+    const response = await fetch(url);
     const data = await response.json();
     if (data.totalItems > 0) {
       const volumeInfo = data.items[0].volumeInfo;
