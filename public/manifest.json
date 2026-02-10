@@ -1,6 +1,6 @@
 {
   "name": "みんなの本棚",
-  "short_name": "ミニライブラリ",
+  "short_name": "みんなの本棚",
   "description": "本を共有し、読書の習慣を。",
   "start_url": "/",
   "display": "standalone",

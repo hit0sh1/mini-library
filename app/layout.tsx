@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   title: "みんなの本棚",
   description: "本を共有し、読書の習慣を。",
   manifest: "/manifest.json",
+  appleWebApp: {
+    title: "みんなの本棚",
+  },
 };
 
 export const viewport: Viewport = {
